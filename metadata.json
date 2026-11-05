@@ -6,9 +6,13 @@
         "Description": "Panel clock that opens a calendar and notifications flyout",
         "Icon": "clock",
         "Category": "Date and Time",
-        "License": "GPL-2.0+",
+        "License": "MIT",
         "Version": "0.1",
-        "Authors": [{ "Name": "Kaiyan" }]
+        "Authors": [
+            {
+                "Name": "Kaiyan"
+            }
+        ]
     },
     "X-Plasma-API-Minimum-Version": "6.0"
 }

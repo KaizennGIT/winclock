@@ -46,3 +46,7 @@ day, M is the month, and yyyy is the year. The settings page lists the rest.
 - There is no Focus timer.
 - Notifications use KDE's notification API, which could change in a future
   Plasma release.
+
+## License
+
+MIT. See the LICENSE file.
