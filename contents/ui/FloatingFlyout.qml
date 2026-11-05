@@ -7,6 +7,7 @@ Item {
     id: wrapper
     property Item anchorItem
     property var panelLocation
+    property var prefs          // set by main.qml: gives access to the settings
     property date now: new Date()
     property alias open: dlg.visible
     property double lastClosed: 0
@@ -25,6 +26,7 @@ Item {
 
         mainItem: Cards {
             now: wrapper.now
+            prefs: wrapper.prefs
             gapBottom: wrapper.panelLocation === PlasmaCore.Types.BottomEdge ? wrapper.edgeGap : 0
             gapTop: wrapper.panelLocation === PlasmaCore.Types.TopEdge ? wrapper.edgeGap : 0
             gapLeft: wrapper.panelLocation === PlasmaCore.Types.LeftEdge ? wrapper.edgeGap : 0

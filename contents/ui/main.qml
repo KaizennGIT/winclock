@@ -11,6 +11,16 @@ PlasmoidItem {
     property bool floatingOk: true
     property double requestedAt: 0
 
+    // Settings (see contents/config/main.xml). The "||" fallbacks make sure an
+    // empty value can never leave the panel clock blank.
+    readonly property string cfgTimeFormat: Plasmoid.configuration.timeFormat || "h:mm AP"
+    readonly property string cfgDateFormat: Plasmoid.configuration.dateFormat || "M/d/yyyy"
+    readonly property bool cfgShowDate: Plasmoid.configuration.showDate
+    readonly property bool cfgFlyout24h: Plasmoid.configuration.flyout24h
+    readonly property bool cfgFlyoutSeconds: Plasmoid.configuration.flyoutSeconds
+    readonly property bool cfgFloating: Plasmoid.configuration.floating
+    readonly property int cfgFlyoutWidth: Plasmoid.configuration.flyoutWidth
+
     Timer {
         interval: 1000
         running: true
@@ -23,12 +33,13 @@ PlasmoidItem {
     toolTipSubText: Qt.formatDate(now, "MMMM d, yyyy")
 
     // Fallback: Plasma's normal popup, same cards
-    fullRepresentation: Cards { now: root.now }
+    fullRepresentation: Cards { now: root.now; prefs: root }
 
     // Risky part lives in its own file. If it fails, only floatingOk flips.
     Loader {
         id: flyoutLoader
         source: "FloatingFlyout.qml"
+        onLoaded: item.prefs = root
         onStatusChanged: if (status === Loader.Error) root.floatingOk = false
     }
     Binding {
@@ -39,7 +50,7 @@ PlasmoidItem {
     }
 
     function toggle(anchor) {
-        if (floatingOk && flyoutLoader.status === Loader.Ready) {
+        if (cfgFloating && floatingOk && flyoutLoader.status === Loader.Ready) {
             const f = flyoutLoader.item
             // clicking the clock deactivates the dialog first; don't instantly reopen
             if (!f.open && Date.now() - f.lastClosed < 250) return
@@ -81,11 +92,12 @@ PlasmoidItem {
             spacing: 0
             PlasmaComponents.Label {
                 Layout.alignment: Qt.AlignHCenter
-                text: Qt.formatTime(root.now, "h:mm AP")
+                text: Qt.formatTime(root.now, root.cfgTimeFormat)
             }
             PlasmaComponents.Label {
                 Layout.alignment: Qt.AlignHCenter
-                text: Qt.formatDate(root.now, "M/d/yyyy")
+                visible: root.cfgShowDate
+                text: Qt.formatDate(root.now, root.cfgDateFormat)
             }
         }
     }

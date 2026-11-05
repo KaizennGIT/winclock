@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0 http://www.kde.org/standards/kcfg/1.0/kcfg.xsd">
+    <kcfgfile name=""/>
+    <group name="General">
+        <entry name="timeFormat" type="String">
+            <label>Panel time format (Qt format string)</label>
+            <default>h:mm AP</default>
+        </entry>
+        <entry name="dateFormat" type="String">
+            <label>Panel date format (Qt format string)</label>
+            <default>M/d/yyyy</default>
+        </entry>
+        <entry name="showDate" type="Bool">
+            <label>Show the date on the panel</label>
+            <default>true</default>
+        </entry>
+        <entry name="flyout24h" type="Bool">
+            <label>Use 24-hour time in the flyout</label>
+            <default>false</default>
+        </entry>
+        <entry name="flyoutSeconds" type="Bool">
+            <label>Show seconds in the flyout</label>
+            <default>true</default>
+        </entry>
+        <entry name="floating" type="Bool">
+            <label>Use the floating (frameless) flyout</label>
+            <default>true</default>
+        </entry>
+        <entry name="flyoutWidth" type="Int">
+            <label>Flyout width in grid units</label>
+            <default>24</default>
+            <min>20</min>
+            <max>36</max>
+        </entry>
+    </group>
+</kcfg>

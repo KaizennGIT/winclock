@@ -5,6 +5,7 @@ import org.kde.kirigami as Kirigami
 Item {
     id: content
     property date now: new Date()
+    property var prefs          // the widget root; gives access to the settings
 
     // Extra transparent space on each side. The floating flyout uses this to
     // keep the cards off the panel. All 0 in the normal popup.
@@ -13,8 +14,9 @@ Item {
     property int gapLeft: 0
     property int gapRight: 0
 
+    readonly property int widthUnits: prefs ? Math.max(20, Math.min(36, prefs.cfgFlyoutWidth)) : 24
     readonly property int pad: Kirigami.Units.largeSpacing
-    implicitWidth: Kirigami.Units.gridUnit * 24 + pad * 2 + gapLeft + gapRight
+    implicitWidth: Kirigami.Units.gridUnit * widthUnits + pad * 2 + gapLeft + gapRight
     implicitHeight: Kirigami.Units.gridUnit * 34 + pad * 2 + gapTop + gapBottom
 
     ColumnLayout {
@@ -63,6 +65,12 @@ Item {
         target: cal.item
         property: "now"
         value: content.now
+        when: cal.status === Loader.Ready
+    }
+    Binding {
+        target: cal.item
+        property: "prefs"
+        value: content.prefs
         when: cal.status === Loader.Ready
     }
 }

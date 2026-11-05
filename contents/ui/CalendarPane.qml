@@ -8,6 +8,12 @@ Item {
     property date now: new Date()
     property bool expanded: true
 
+    // set by main.qml: gives access to the settings
+    property var prefs
+    readonly property bool use24h: prefs ? prefs.cfgFlyout24h : false
+    readonly property bool showSecs: prefs ? prefs.cfgFlyoutSeconds : true
+    readonly property string clockFormat: (use24h ? "HH:mm" : "h:mm") + (showSecs ? ":ss" : "")
+
     // which month is being shown (starts on the current month)
     property int viewYear: now.getFullYear()
     property int viewMonth: now.getMonth()
@@ -57,13 +63,14 @@ Item {
                 RowLayout {
                     spacing: Kirigami.Units.smallSpacing
                     PlasmaComponents.Label {
-                        text: Qt.formatTime(root.now, "h:mm:ss")
+                        text: Qt.formatTime(root.now, root.clockFormat)
                         font.pointSize: Kirigami.Theme.defaultFont.pointSize * 2
                         font.weight: Font.DemiBold
                         Layout.alignment: Qt.AlignBaseline
                     }
                     PlasmaComponents.Label {
                         text: Qt.formatTime(root.now, "AP")
+                        visible: !root.use24h
                         opacity: 0.8
                         Layout.alignment: Qt.AlignBaseline
                     }
