@@ -17,11 +17,31 @@ ColumnLayout {
                  | NotificationManager.Notifications.LowUrgency
     }
 
-    Kirigami.Heading {
-        level: 4
-        text: "Notifications"
+    // Close every notification, bottom to top, so row numbers stay valid
+    // while the list shrinks. Uses the same close() call as the X buttons.
+    function clearAll() {
+        for (let i = list.count - 1; i >= 0; i--) {
+            notifModel.close(notifModel.index(i, 0))
+        }
+    }
+
+    RowLayout {
+        Layout.fillWidth: true
         Layout.leftMargin: Kirigami.Units.largeSpacing
+        Layout.rightMargin: Kirigami.Units.smallSpacing
         Layout.topMargin: Kirigami.Units.smallSpacing
+
+        Kirigami.Heading {
+            level: 4
+            text: "Notifications"
+            Layout.fillWidth: true
+        }
+
+        PlasmaComponents.ToolButton {
+            icon.name: "edit-clear-all"
+            enabled: list.count > 0
+            onClicked: clearAll()
+        }
     }
 
     Item {
@@ -40,7 +60,7 @@ ColumnLayout {
                 width: ListView.view.width
                 height: row.implicitHeight + Kirigami.Units.smallSpacing * 2
                 radius: 6
-                color: Kirigami.Theme.backgroundColor
+                color: Kirigami.Theme.alternateBackgroundColor
 
                 RowLayout {
                     id: row
@@ -87,7 +107,8 @@ ColumnLayout {
                     }
 
                     PlasmaComponents.ToolButton {
-                        icon.name: "window-close"
+                        icon.name: "window-close-symbolic"
+                        opacity: 0.7
                         Layout.alignment: Qt.AlignTop
                         onClicked: notifModel.close(notifModel.index(index, 0))
                     }
@@ -98,7 +119,7 @@ ColumnLayout {
         PlasmaComponents.Label {
             anchors.centerIn: parent
             visible: list.count === 0
-            text: "No notifications"
+            text: "No new notifications"
             opacity: 0.6
         }
     }
