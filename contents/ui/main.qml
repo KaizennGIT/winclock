@@ -8,6 +8,8 @@ PlasmoidItem {
     id: root
 
     property date now: new Date()
+    property bool floatingOk: true
+    property double requestedAt: 0
 
     Timer {
         interval: 1000
@@ -20,12 +22,58 @@ PlasmoidItem {
     toolTipMainText: Qt.formatDate(now, "dddd")
     toolTipSubText: Qt.formatDate(now, "MMMM d, yyyy")
 
+    // Fallback: Plasma's normal popup, same cards
+    fullRepresentation: Cards { now: root.now }
+
+    // Risky part lives in its own file. If it fails, only floatingOk flips.
+    Loader {
+        id: flyoutLoader
+        source: "FloatingFlyout.qml"
+        onStatusChanged: if (status === Loader.Error) root.floatingOk = false
+    }
+    Binding {
+        target: flyoutLoader.item
+        property: "now"
+        value: root.now
+        when: flyoutLoader.status === Loader.Ready
+    }
+
+    function toggle(anchor) {
+        if (floatingOk && flyoutLoader.status === Loader.Ready) {
+            const f = flyoutLoader.item
+            // clicking the clock deactivates the dialog first; don't instantly reopen
+            if (!f.open && Date.now() - f.lastClosed < 250) return
+            f.anchorItem = anchor
+            f.panelLocation = Plasmoid.location
+            f.open = !f.open
+            if (f.open) {
+                requestedAt = Date.now()
+                watchdog.restart()
+            }
+        } else {
+            root.expanded = !root.expanded
+        }
+    }
+
+    // asked to open but never appeared -> switch to the stock popup
+    Timer {
+        id: watchdog
+        interval: 600
+        onTriggered: {
+            const f = flyoutLoader.item
+            if (f && !f.open && f.lastClosed < root.requestedAt) {
+                root.floatingOk = false
+                root.expanded = true
+            }
+        }
+    }
+
     compactRepresentation: MouseArea {
         id: compact
         hoverEnabled: true
         Layout.minimumWidth: col.implicitWidth + Kirigami.Units.largeSpacing * 2
         Layout.preferredWidth: Layout.minimumWidth
-        onClicked: root.expanded = !root.expanded
+        onClicked: root.toggle(compact)
 
         ColumnLayout {
             id: col
@@ -39,68 +87,6 @@ PlasmoidItem {
                 Layout.alignment: Qt.AlignHCenter
                 text: Qt.formatDate(root.now, "M/d/yyyy")
             }
-        }
-    }
-
-    fullRepresentation: ColumnLayout {
-        Layout.minimumWidth: Kirigami.Units.gridUnit * 22
-        Layout.preferredWidth: Kirigami.Units.gridUnit * 24
-        Layout.minimumHeight: Kirigami.Units.gridUnit * 28
-        Layout.preferredHeight: Kirigami.Units.gridUnit * 34
-        spacing: Kirigami.Units.largeSpacing
-
-        // Card 1: notifications
-        Rectangle {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            Layout.minimumHeight: Kirigami.Units.gridUnit * 8
-            radius: 10
-            color: Kirigami.Theme.alternateBackgroundColor
-            border.width: 1
-            border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.15)
-
-            Loader {
-                id: notifLoader
-                anchors.fill: parent
-                anchors.margins: Kirigami.Units.smallSpacing
-                source: "NotificationPane.qml"
-
-                PlasmaComponents.Label {
-                    anchors.centerIn: parent
-                    visible: notifLoader.status === Loader.Error
-                    text: "Notifications failed to load"
-                }
-            }
-        }
-
-        // Card 2: calendar
-        Rectangle {
-            Layout.fillWidth: true
-            Layout.preferredHeight: Kirigami.Units.gridUnit * 19
-            radius: 10
-            color: Kirigami.Theme.alternateBackgroundColor
-            border.width: 1
-            border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.15)
-
-            Loader {
-                id: cal
-                anchors.fill: parent
-                anchors.margins: Kirigami.Units.smallSpacing
-                source: "CalendarPane.qml"
-
-                PlasmaComponents.Label {
-                    anchors.centerIn: parent
-                    visible: cal.status === Loader.Error
-                    text: "Calendar failed to load"
-                }
-            }
-        }
-
-        Binding {
-            target: cal.item
-            property: "now"
-            value: root.now
-            when: cal.status === Loader.Ready
         }
     }
 }
