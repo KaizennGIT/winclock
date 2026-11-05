@@ -137,11 +137,23 @@ KCM.SimpleKCM {
             onToggled: page.cfg_flyoutSeconds = checked
         }
         QQC2.SpinBox {
+            id: widthSpin
             Kirigami.FormData.label: "Flyout width:"
             from: 20
-            to: 36
-            value: page.cfg_flyoutWidth
+            to: 60
             onValueModified: page.cfg_flyoutWidth = value
+        }
+        // This keeps the box in sync even after you have used it, so
+        // "Reset all to defaults" always moves it.
+        Binding {
+            target: widthSpin
+            property: "value"
+            value: page.cfg_flyoutWidth
+        }
+        QQC2.Label {
+            opacity: 0.7
+            font: Kirigami.Theme.smallFont
+            text: "One unit is about 18 pixels at normal scaling."
         }
         QQC2.CheckBox {
             text: "Floating flyout (no frame)"
