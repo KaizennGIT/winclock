@@ -40,7 +40,7 @@ ColumnLayout {
                 width: ListView.view.width
                 height: row.implicitHeight + Kirigami.Units.smallSpacing * 2
                 radius: 6
-                color: Kirigami.Theme.alternateBackgroundColor
+                color: Kirigami.Theme.backgroundColor
 
                 RowLayout {
                     id: row
