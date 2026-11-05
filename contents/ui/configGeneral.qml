@@ -155,5 +155,28 @@ KCM.SimpleKCM {
             font: Kirigami.Theme.smallFont
             text: "Turn off floating to use Plasma's normal framed popup instead."
         }
+
+        Kirigami.Separator {
+            Kirigami.FormData.isSection: true
+        }
+        QQC2.Button {
+            text: "Reset all to defaults"
+            icon.name: "edit-undo"
+            onClicked: {
+                // keep these in sync with contents/config/main.xml
+                page.cfg_timeFormat = "h:mm AP"
+                page.cfg_dateFormat = "M/d/yyyy"
+                page.cfg_showDate = true
+                page.cfg_flyout24h = false
+                page.cfg_flyoutSeconds = true
+                page.cfg_floating = true
+                page.cfg_flyoutWidth = 24
+            }
+        }
+        QQC2.Label {
+            opacity: 0.7
+            font: Kirigami.Theme.smallFont
+            text: "Press Apply afterwards to save."
+        }
     }
 }

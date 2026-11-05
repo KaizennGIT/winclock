@@ -19,6 +19,12 @@ Item {
     implicitWidth: Kirigami.Units.gridUnit * widthUnits + pad * 2 + gapLeft + gapRight
     implicitHeight: Kirigami.Units.gridUnit * 34 + pad * 2 + gapTop + gapBottom
 
+    // Plasma sizes the window from these hints, so width changes apply live
+    Layout.minimumWidth: implicitWidth
+    Layout.maximumWidth: implicitWidth
+    Layout.minimumHeight: implicitHeight
+    Layout.maximumHeight: implicitHeight
+
     ColumnLayout {
         anchors.fill: parent
         anchors.leftMargin: content.pad + content.gapLeft
