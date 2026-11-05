@@ -5,13 +5,24 @@ import org.kde.kirigami as Kirigami
 Item {
     id: content
     property date now: new Date()
+
+    // Extra transparent space on each side. The floating flyout uses this to
+    // keep the cards off the panel. All 0 in the normal popup.
+    property int gapTop: 0
+    property int gapBottom: 0
+    property int gapLeft: 0
+    property int gapRight: 0
+
     readonly property int pad: Kirigami.Units.largeSpacing
-    implicitWidth: Kirigami.Units.gridUnit * 24 + pad * 2
-    implicitHeight: Kirigami.Units.gridUnit * 34 + pad * 2
+    implicitWidth: Kirigami.Units.gridUnit * 24 + pad * 2 + gapLeft + gapRight
+    implicitHeight: Kirigami.Units.gridUnit * 34 + pad * 2 + gapTop + gapBottom
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: content.pad
+        anchors.leftMargin: content.pad + content.gapLeft
+        anchors.rightMargin: content.pad + content.gapRight
+        anchors.topMargin: content.pad + content.gapTop
+        anchors.bottomMargin: content.pad + content.gapBottom
         spacing: Kirigami.Units.largeSpacing
 
         Rectangle {
@@ -31,7 +42,10 @@ Item {
 
         Rectangle {
             Layout.fillWidth: true
-            Layout.preferredHeight: Kirigami.Units.gridUnit * 19
+            // as tall as the calendar needs; shrinks when it is collapsed
+            Layout.preferredHeight: cal.item
+                ? cal.item.implicitHeight + Kirigami.Units.smallSpacing * 2
+                : Kirigami.Units.gridUnit * 19
             radius: 10
             color: Kirigami.Theme.backgroundColor
             border.width: 1
