@@ -42,6 +42,7 @@ Item {
             border.width: 1
             border.color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.15)
             Loader {
+                id: notif
                 anchors.fill: parent
                 anchors.margins: Kirigami.Units.smallSpacing
                 source: "NotificationPane.qml"
@@ -67,6 +68,12 @@ Item {
         }
     }
 
+    Binding {
+        target: notif.item
+        property: "prefs"
+        value: content.prefs
+        when: notif.status === Loader.Ready
+    }
     Binding {
         target: cal.item
         property: "now"

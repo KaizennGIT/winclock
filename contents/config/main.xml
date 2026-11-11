@@ -28,6 +28,10 @@
             <label>Use the floating (frameless) flyout</label>
             <default>true</default>
         </entry>
+        <entry name="notifAnimations" type="Bool">
+            <label>Animate notifications (dismiss, clear all, Do Not Disturb)</label>
+            <default>true</default>
+        </entry>
         <entry name="flyoutWidth" type="Int">
             <label>Flyout width in grid units</label>
             <default>24</default>

@@ -8,6 +8,10 @@ ColumnLayout {
     id: pane
     spacing: Kirigami.Units.smallSpacing
 
+    // set by Cards.qml: gives access to the settings
+    property var prefs
+    readonly property bool animationsEnabled: prefs ? prefs.cfgNotifAnimations : true
+
     NotificationManager.Notifications {
         id: notifModel
         showExpired: true
@@ -82,15 +86,71 @@ ColumnLayout {
         dndSettings.save()
     }
 
-    // Close every top-level row, bottom to top. Closing a group header closes
-    // all of its children, so children are skipped.
-    function clearAll() {
-        for (let i = list.count - 1; i >= 0; i--) {
+    // Close the nearest top-level row (an app group header, or a lone card)
+    // at or above row `pos`. Closing a group header closes all of its
+    // children too. Returns the row it closed, or -1 when there is none.
+    // Working bottom to top keeps the rows above untouched.
+    function closeTopLevelFrom(pos) {
+        for (let i = Math.min(pos, list.count - 1); i >= 0; i--) {
             const idx = notifModel.index(i, 0)
-            if (notifModel.data(idx, NotificationManager.Notifications.IsInGroupRole) === true) {
-                continue
+            if (notifModel.data(idx, NotificationManager.Notifications.IsInGroupRole) !== true) {
+                notifModel.close(idx)
+                return i
             }
-            notifModel.close(idx)
+        }
+        return -1
+    }
+
+    // ---- clear all ----
+    // true while the "sweep away" animation plays; each card watches this flag
+    property bool clearing: false
+    readonly property int staggerStep: Math.round(Kirigami.Units.shortDuration * 0.4)
+    readonly property int maxStaggered: 8   // only the first few rows get a delay
+
+    function closeEverything() {
+        let pos = list.count - 1
+        while (pos >= 0) {
+            const closed = closeTopLevelFrom(pos)
+            if (closed < 0) {
+                break
+            }
+            pos = closed - 1
+        }
+    }
+
+    function clearAll() {
+        if (clearing || list.count === 0) {
+            return
+        }
+        if (!animationsEnabled) {
+            closeEverything()
+            return
+        }
+        clearPulse.restart()
+        clearing = true
+        // wait for the sweep to finish, then actually remove everything
+        clearTimer.interval = Kirigami.Units.longDuration + maxStaggered * staggerStep + 40
+        clearTimer.restart()
+    }
+
+    Timer {
+        id: clearTimer
+        onTriggered: {
+            pane.closeEverything()
+            clearResetTimer.restart()
+        }
+    }
+    // give the model a moment to drop the rows, then let any survivors reappear
+    Timer {
+        id: clearResetTimer
+        interval: 300
+        onTriggered: pane.clearing = false
+    }
+
+    // bell wiggles whenever Do Not Disturb flips
+    onDndActiveChanged: {
+        if (animationsEnabled) {
+            bellRing.restart()
         }
     }
 
@@ -107,15 +167,38 @@ ColumnLayout {
         }
 
         PlasmaComponents.ToolButton {
+            id: bellBtn
             icon.name: pane.dndActive ? "notifications-disabled" : "notifications"
             highlighted: pane.dndActive
             onClicked: pane.toggleDnd()
+
+            SequentialAnimation {
+                id: bellRing
+                NumberAnimation { target: bellBtn; property: "rotation"; to: 16;  duration: Kirigami.Units.shortDuration; easing.type: Easing.OutQuad }
+                NumberAnimation { target: bellBtn; property: "rotation"; to: -12; duration: Kirigami.Units.shortDuration; easing.type: Easing.InOutQuad }
+                NumberAnimation { target: bellBtn; property: "rotation"; to: 6;   duration: Kirigami.Units.shortDuration; easing.type: Easing.InOutQuad }
+                NumberAnimation { target: bellBtn; property: "rotation"; to: 0;   duration: Kirigami.Units.shortDuration; easing.type: Easing.InQuad }
+            }
         }
 
         PlasmaComponents.ToolButton {
+            id: clearBtn
             icon.name: "edit-clear-all"
-            enabled: list.count > 0
+            enabled: list.count > 0 && !pane.clearing
             onClicked: pane.clearAll()
+
+            // squash-and-bounce with a little twist when pressed
+            SequentialAnimation {
+                id: clearPulse
+                ParallelAnimation {
+                    NumberAnimation { target: clearBtn; property: "scale"; to: 0.6; duration: Kirigami.Units.shortDuration; easing.type: Easing.OutQuad }
+                    NumberAnimation { target: clearBtn; property: "rotation"; to: -25; duration: Kirigami.Units.shortDuration; easing.type: Easing.OutQuad }
+                }
+                ParallelAnimation {
+                    NumberAnimation { target: clearBtn; property: "scale"; to: 1.0; duration: Kirigami.Units.longDuration; easing.type: Easing.OutBack; easing.overshoot: 3 }
+                    NumberAnimation { target: clearBtn; property: "rotation"; to: 0; duration: Kirigami.Units.longDuration; easing.type: Easing.OutBack; easing.overshoot: 3 }
+                }
+            }
         }
     }
 
@@ -131,9 +214,47 @@ ColumnLayout {
             spacing: Kirigami.Units.smallSpacing
             model: notifModel
 
+            // New cards slide in from the right and fade up
+            add: Transition {
+                enabled: pane.animationsEnabled
+                ParallelAnimation {
+                    NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Kirigami.Units.longDuration }
+                    NumberAnimation { property: "x"; from: Kirigami.Units.gridUnit * 2; to: 0; duration: Kirigami.Units.longDuration; easing.type: Easing.OutCubic }
+                }
+            }
+            // Dismissed cards slide off to the right and fade out
+            remove: Transition {
+                enabled: pane.animationsEnabled && !pane.clearing
+                ParallelAnimation {
+                    NumberAnimation { property: "opacity"; to: 0; duration: Kirigami.Units.longDuration }
+                    NumberAnimation { property: "x"; to: list.width; duration: Kirigami.Units.longDuration; easing.type: Easing.InCubic }
+                }
+            }
+            // Everything below glides up/down to fill the gap
+            displaced: Transition {
+                enabled: pane.animationsEnabled
+                NumberAnimation { property: "y"; duration: Kirigami.Units.longDuration; easing.type: Easing.OutCubic }
+            }
+
             delegate: Item {
                 id: del
                 width: ListView.view.width
+
+                // "Clear all": every row slides right and fades, top rows first
+                property real slide: 0
+                transform: Translate { x: del.slide }
+                states: State {
+                    name: "clearing"
+                    when: pane.clearing
+                    PropertyChanges { target: del; opacity: 0; slide: del.width }
+                }
+                transitions: Transition {
+                    to: "clearing"
+                    SequentialAnimation {
+                        PauseAnimation { duration: Math.min(index, pane.maxStaggered) * pane.staggerStep }
+                        NumberAnimation { target: del; properties: "opacity,slide"; duration: Kirigami.Units.longDuration; easing.type: Easing.InCubic }
+                    }
+                }
                 readonly property bool isGroup: model.isGroup === true
                 readonly property bool inGroup: model.isInGroup === true
                 height: isGroup

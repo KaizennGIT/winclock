@@ -20,6 +20,8 @@ KCM.SimpleKCM {
     property bool cfg_flyoutSecondsDefault
     property bool cfg_floating
     property bool cfg_floatingDefault
+    property bool cfg_notifAnimations
+    property bool cfg_notifAnimationsDefault
     property int cfg_flyoutWidth
     property int cfg_flyoutWidthDefault
 
@@ -156,6 +158,18 @@ KCM.SimpleKCM {
             text: "One unit is about 18 pixels at normal scaling."
         }
         QQC2.CheckBox {
+            text: "Animate notifications"
+            checked: page.cfg_notifAnimations
+            onToggled: page.cfg_notifAnimations = checked
+        }
+        QQC2.Label {
+            Layout.maximumWidth: Kirigami.Units.gridUnit * 20
+            wrapMode: Text.Wrap
+            opacity: 0.7
+            font: Kirigami.Theme.smallFont
+            text: "Slide and fade effects when notifications arrive, are dismissed or cleared, and when Do Not Disturb changes."
+        }
+        QQC2.CheckBox {
             text: "Floating flyout (no frame)"
             checked: page.cfg_floating
             onToggled: page.cfg_floating = checked
@@ -182,6 +196,7 @@ KCM.SimpleKCM {
                 page.cfg_flyout24h = false
                 page.cfg_flyoutSeconds = true
                 page.cfg_floating = true
+                page.cfg_notifAnimations = true
                 page.cfg_flyoutWidth = 24
             }
         }

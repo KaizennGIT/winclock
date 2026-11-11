@@ -20,6 +20,7 @@ PlasmoidItem {
     readonly property bool cfgFlyoutSeconds: Plasmoid.configuration.flyoutSeconds
     readonly property bool cfgFloating: Plasmoid.configuration.floating
     readonly property int cfgFlyoutWidth: Plasmoid.configuration.flyoutWidth
+    readonly property bool cfgNotifAnimations: Plasmoid.configuration.notifAnimations
 
     Timer {
         interval: 1000
