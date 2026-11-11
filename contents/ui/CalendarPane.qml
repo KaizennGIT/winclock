@@ -14,11 +14,25 @@ Item {
     readonly property bool showSecs: prefs ? prefs.cfgFlyoutSeconds : true
     readonly property string clockFormat: (use24h ? "HH:mm" : "h:mm") + (showSecs ? ":ss" : "")
 
+    // Plasma themes (setting): flat look like KDE's default calendar popup.
+    // classic = Classic Plasma: bigger text and cells, matching KDE's real popup.
+    readonly property bool plasma: prefs ? prefs.cfgPlasmaLook : false
+    readonly property bool classic: prefs ? prefs.cfgClassic : false
+    readonly property real textScale: classic ? 1.1 : 1.0
+    readonly property int edgeInset: classic ? 0 : Kirigami.Units.largeSpacing
+    // KDE shows the hour with a leading zero and AM/PM in the same size
+    readonly property string plasmaClockFormat: (use24h ? "HH:mm" : "hh:mm") + (showSecs ? ":ss" : "") + (use24h ? "" : " AP")
+
     // which month is being shown (starts on the current month)
     property int viewYear: now.getFullYear()
     property int viewMonth: now.getMonth()
 
     implicitHeight: col.implicitHeight
+    // Height with the month panel open, even while it is folded away. Cards sizes the
+    // flyout from this, so folding the calendar frees room for the notifications
+    // instead of shrinking the whole flyout.
+    readonly property real fullHeight: col.implicitHeight
+        + (expanded ? 0 : monthPanel.Layout.preferredHeight + col.spacing)
 
     function shiftMonth(delta) {
         const d = new Date(viewYear, viewMonth + delta, 1)
@@ -36,7 +50,10 @@ Item {
     readonly property var gridStart: {
         const first = new Date(viewYear, viewMonth, 1)
         const firstDow = Qt.locale().firstDayOfWeek % 7
-        const offset = (first.getDay() - firstDow + 7) % 7
+        let offset = (first.getDay() - firstDow + 7) % 7
+        if (plasma && offset === 0) {
+            offset = 7   // like KDE: a first row of the previous month
+        }
         return new Date(viewYear, viewMonth, 1 - offset)
     }
 
@@ -52,8 +69,8 @@ Item {
         // ---- big time / date header ----
         RowLayout {
             Layout.fillWidth: true
-            Layout.leftMargin: Kirigami.Units.largeSpacing
-            Layout.rightMargin: Kirigami.Units.smallSpacing
+            Layout.leftMargin: root.edgeInset
+            Layout.rightMargin: root.classic ? 0 : Kirigami.Units.smallSpacing
             Layout.topMargin: Kirigami.Units.smallSpacing
 
             ColumnLayout {
@@ -63,21 +80,22 @@ Item {
                 RowLayout {
                     spacing: Kirigami.Units.smallSpacing
                     PlasmaComponents.Label {
-                        text: Qt.formatTime(root.now, root.clockFormat)
-                        font.pointSize: Kirigami.Theme.defaultFont.pointSize * 2
-                        font.weight: Font.DemiBold
+                        text: Qt.formatTime(root.now, root.plasma ? root.plasmaClockFormat : root.clockFormat)
+                        font.pointSize: Kirigami.Theme.defaultFont.pointSize * (root.classic ? 3 : (root.plasma ? 2.6 : 2))
+                        font.weight: root.plasma ? Font.Light : Font.DemiBold
                         Layout.alignment: Qt.AlignBaseline
                     }
                     PlasmaComponents.Label {
                         text: Qt.formatTime(root.now, "AP")
-                        visible: !root.use24h
+                        visible: !root.use24h && !root.plasma
                         opacity: 0.8
                         Layout.alignment: Qt.AlignBaseline
                     }
                 }
                 PlasmaComponents.Label {
-                    text: Qt.formatDate(root.now, "dddd, MMMM d")
-                    opacity: 0.7
+                    text: root.plasma ? Qt.formatDate(root.now, "dddd d MMMM yyyy") : Qt.formatDate(root.now, "dddd, MMMM d")
+                    opacity: root.plasma ? 0.9 : 0.7
+                    font.pointSize: Kirigami.Theme.defaultFont.pointSize * (root.classic ? 1.2 : 1.0)
                 }
             }
 
@@ -88,13 +106,24 @@ Item {
             }
         }
 
-        // ---- month panel (hidden when collapsed) ----
+        // thin line under the header (Plasma themes only, while the calendar is open)
+        Kirigami.Separator {
+            visible: root.plasma && root.expanded
+            Layout.fillWidth: true
+            Layout.leftMargin: root.edgeInset
+            Layout.rightMargin: root.edgeInset
+            Layout.topMargin: root.classic ? Kirigami.Units.largeSpacing * 2 : Kirigami.Units.smallSpacing
+            Layout.bottomMargin: root.classic ? Kirigami.Units.largeSpacing : 0
+        }
+
+        // ---- month panel (folded away with the arrow in the header) ----
         Rectangle {
+            id: monthPanel
             visible: root.expanded
             Layout.fillWidth: true
-            Layout.preferredHeight: panelCol.implicitHeight + Kirigami.Units.smallSpacing * 2
+            Layout.preferredHeight: panelCol.implicitHeight + (root.classic ? 0 : Kirigami.Units.smallSpacing * 2)
             radius: 6
-            color: Kirigami.Theme.alternateBackgroundColor
+            color: root.plasma ? "transparent" : Kirigami.Theme.alternateBackgroundColor
 
             ColumnLayout {
                 id: panelCol
@@ -102,25 +131,31 @@ Item {
                     left: parent.left
                     right: parent.right
                     top: parent.top
-                    margins: Kirigami.Units.smallSpacing
+                    margins: root.classic ? 0 : Kirigami.Units.smallSpacing
                 }
                 spacing: 0
 
                 // month name + up/down arrows
                 RowLayout {
                     Layout.fillWidth: true
-                    Layout.leftMargin: Kirigami.Units.smallSpacing
+                    Layout.leftMargin: root.classic ? 0 : Kirigami.Units.smallSpacing
 
                     PlasmaComponents.Label {
                         Layout.fillWidth: true
+                        font.pointSize: Kirigami.Theme.defaultFont.pointSize * root.textScale
                         text: Qt.formatDate(new Date(root.viewYear, root.viewMonth, 1), "MMMM yyyy")
-                        font.weight: Font.DemiBold
+                        font.weight: root.plasma ? Font.Normal : Font.DemiBold
                         // click the month name to jump back to the current month
                         TapHandler { onTapped: root.goToday() }
                     }
                     PlasmaComponents.ToolButton {
                         icon.name: "go-up-symbolic"
                         onClicked: root.shiftMonth(-1)
+                    }
+                    PlasmaComponents.ToolButton {
+                        visible: root.plasma
+                        icon.name: "view-calendar"
+                        onClicked: root.goToday()
                     }
                     PlasmaComponents.ToolButton {
                         icon.name: "go-down-symbolic"
@@ -140,12 +175,15 @@ Item {
                         model: 7
                         delegate: PlasmaComponents.Label {
                             Layout.fillWidth: true
-                            Layout.preferredHeight: Kirigami.Units.gridUnit * 1.6
+                            Layout.preferredHeight: Kirigami.Units.gridUnit * (root.classic ? 2.7 : (root.plasma ? 1.8 : 1.6))
+                            font.pointSize: Kirigami.Theme.defaultFont.pointSize * root.textScale
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
-                            text: Qt.formatDate(root.cellDate(index), "ddd").substring(0, 2)
-                            font.weight: Font.DemiBold
-                            opacity: 0.8
+                            text: root.plasma
+                                ? Qt.formatDate(root.cellDate(index), "ddd")
+                                : Qt.formatDate(root.cellDate(index), "ddd").substring(0, 2)
+                            font.weight: root.plasma ? Font.Bold : Font.DemiBold
+                            opacity: root.plasma ? 1.0 : 0.8
                         }
                     }
 
@@ -160,20 +198,29 @@ Item {
                                 && d.getDate() === root.now.getDate()
 
                             Layout.fillWidth: true
-                            Layout.preferredHeight: Kirigami.Units.gridUnit * 2
+                            Layout.preferredHeight: Kirigami.Units.gridUnit * (root.classic ? 2.7 : 2)
 
+                            // Windows style: solid circle. Plasma style: rounded box with
+                            // a soft fill and an outline, like KDE's own calendar.
                             Rectangle {
                                 anchors.centerIn: parent
-                                width: Kirigami.Units.gridUnit * 1.8
-                                height: width
-                                radius: width / 2
-                                color: cell.isToday ? Kirigami.Theme.highlightColor : "transparent"
+                                width: root.plasma ? parent.width - 4 : Kirigami.Units.gridUnit * 1.8
+                                height: root.plasma ? parent.height - 4 : width
+                                radius: root.plasma ? 4 : width / 2
+                                color: !cell.isToday ? "transparent"
+                                    : root.plasma
+                                        ? Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.35)
+                                        : Kirigami.Theme.highlightColor
+                                border.width: root.plasma && cell.isToday ? 1 : 0
+                                border.color: Kirigami.Theme.highlightColor
                             }
                             PlasmaComponents.Label {
                                 anchors.centerIn: parent
                                 text: cell.d.getDate()
-                                color: cell.isToday ? Kirigami.Theme.highlightedTextColor : Kirigami.Theme.textColor
-                                opacity: cell.inMonth || cell.isToday ? 1.0 : 0.4
+                                font.pointSize: Kirigami.Theme.defaultFont.pointSize * root.textScale
+                                font.bold: root.plasma && cell.isToday
+                                color: root.plasma || !cell.isToday ? Kirigami.Theme.textColor : Kirigami.Theme.highlightedTextColor
+                                opacity: cell.inMonth || cell.isToday ? 1.0 : (root.plasma ? 0.3 : 0.4)
                             }
                         }
                     }

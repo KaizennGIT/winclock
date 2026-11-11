@@ -10,6 +10,10 @@ Windows 11 flyout and is not affiliated with Microsoft.
 
 - Panel clock with a time and date you can format any way you like
 - Floating flyout with no frame: notifications on top, calendar below
+- Three themes, picked in settings: Windows 11, Modern Plasma (compact), and
+  Classic Plasma (same size as KDE's own calendar popup, docked to the panel)
+- An arrow next to the clock folds the calendar away so the notifications get
+  the room
 - Notifications grouped by app, clear-all button, Do Not Disturb bell
 - Calendar with a big clock header, month arrows, and a collapse button
 - If the floating flyout ever fails, it falls back to Plasma's normal popup, so

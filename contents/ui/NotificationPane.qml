@@ -11,6 +11,10 @@ ColumnLayout {
     // set by Cards.qml: gives access to the settings
     property var prefs
     readonly property bool animationsEnabled: prefs ? prefs.cfgNotifAnimations : true
+    // Plasma-style look (setting): flat bordered rows that match KDE's calendar
+    readonly property bool plasma: prefs ? prefs.cfgPlasmaLook : false
+    // Classic Plasma: content runs edge to edge so it lines up with the calendar grid
+    readonly property bool classic: prefs ? prefs.cfgClassic : false
 
     NotificationManager.Notifications {
         id: notifModel
@@ -156,12 +160,13 @@ ColumnLayout {
 
     RowLayout {
         Layout.fillWidth: true
-        Layout.leftMargin: Kirigami.Units.largeSpacing
-        Layout.rightMargin: Kirigami.Units.smallSpacing
+        Layout.leftMargin: pane.classic ? 0 : Kirigami.Units.largeSpacing
+        Layout.rightMargin: pane.classic ? 0 : Kirigami.Units.smallSpacing
         Layout.topMargin: Kirigami.Units.smallSpacing
 
         Kirigami.Heading {
-            level: 4
+            level: pane.plasma ? 5 : 4
+            font.weight: pane.plasma ? Font.Normal : Font.DemiBold
             text: "Notifications"
             Layout.fillWidth: true
         }
@@ -209,7 +214,7 @@ ColumnLayout {
         ListView {
             id: list
             anchors.fill: parent
-            anchors.margins: Kirigami.Units.smallSpacing
+            anchors.margins: pane.classic ? 0 : Kirigami.Units.smallSpacing
             clip: true
             spacing: Kirigami.Units.smallSpacing
             model: notifModel
@@ -308,8 +313,18 @@ ColumnLayout {
                     anchors.right: parent.right
                     anchors.leftMargin: del.inGroup ? Kirigami.Units.largeSpacing : 0
                     height: cardColumn.implicitHeight + pane.cardPadding * 2
-                    radius: 6
-                    color: Kirigami.Theme.alternateBackgroundColor
+                    radius: pane.plasma ? 4 : 6
+                    // Windows style: solid card. Plasma style: flat with a thin outline;
+                    // hovering tints it with the accent color (like the calendar's today box).
+                    color: !pane.plasma ? Kirigami.Theme.alternateBackgroundColor
+                        : cardHover.hovered
+                            ? Qt.rgba(Kirigami.Theme.highlightColor.r, Kirigami.Theme.highlightColor.g, Kirigami.Theme.highlightColor.b, 0.15)
+                            : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.05)
+                    border.width: pane.plasma ? 1 : 0
+                    border.color: cardHover.hovered
+                        ? Kirigami.Theme.highlightColor
+                        : Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.12)
+                    HoverHandler { id: cardHover }
 
                     // Group info for the "+N notifications" button (only the
                     // last visible card of a group shows the button)
@@ -392,7 +407,8 @@ ColumnLayout {
                         // Bottom-left: "+N notifications" / "Show less"
                         PlasmaComponents.Button {
                             visible: card.showToggle
-                            highlighted: true   // solid accent-colored background
+                            highlighted: !pane.plasma   // Windows style: solid accent-colored background
+                            flat: pane.plasma           // Plasma style: plain flat button
                             Layout.alignment: Qt.AlignLeft
                             font.pointSize: Kirigami.Theme.smallFont.pointSize
                             text: card.groupExpanded

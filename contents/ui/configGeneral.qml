@@ -22,6 +22,8 @@ KCM.SimpleKCM {
     property bool cfg_floatingDefault
     property bool cfg_notifAnimations
     property bool cfg_notifAnimationsDefault
+    property string cfg_theme
+    property string cfg_themeDefault
     property int cfg_flyoutWidth
     property int cfg_flyoutWidthDefault
 
@@ -38,6 +40,25 @@ KCM.SimpleKCM {
         { text: "Nov 5, 2026",     fmt: "MMM d, yyyy" },
         { text: "Thu 5 Nov",       fmt: "ddd d MMM" }
     ]
+
+    readonly property var themes: [
+        { text: "Windows 11",     value: "windows11",
+          info: "Two rounded cards (notifications on top, calendar below) in the Windows 11 style." },
+        { text: "Modern Plasma",  value: "modernplasma",
+          info: "One flat panel in the look of KDE's own calendar, compact in size. Can float or dock." },
+        { text: "Classic Plasma", value: "classicplasma",
+          info: "Same look as Modern Plasma, but the same size as KDE's own calendar popup and always docked to the panel (the width and floating options below don't apply)." }
+    ]
+    readonly property bool classicTheme: cfg_theme === "classicplasma"
+
+    function themeIndex(value) {
+        for (let i = 0; i < themes.length; i++) {
+            if (themes[i].value === value) {
+                return i
+            }
+        }
+        return 0
+    }
 
     // which preset matches the current format; the last entry is "Custom"
     function presetIndex(presets, fmt) {
@@ -128,6 +149,19 @@ KCM.SimpleKCM {
             Kirigami.FormData.label: "Flyout"
         }
 
+        QQC2.ComboBox {
+            Kirigami.FormData.label: "Theme:"
+            model: page.themes.map(t => t.text)
+            currentIndex: page.themeIndex(page.cfg_theme)
+            onActivated: index => page.cfg_theme = page.themes[index].value
+        }
+        QQC2.Label {
+            Layout.maximumWidth: Kirigami.Units.gridUnit * 20
+            wrapMode: Text.Wrap
+            opacity: 0.7
+            font: Kirigami.Theme.smallFont
+            text: page.themes[page.themeIndex(page.cfg_theme)].info
+        }
         QQC2.CheckBox {
             text: "Use 24-hour time in the flyout"
             checked: page.cfg_flyout24h
@@ -140,6 +174,7 @@ KCM.SimpleKCM {
         }
         QQC2.SpinBox {
             id: widthSpin
+            enabled: !page.classicTheme
             Kirigami.FormData.label: "Flyout width:"
             from: 20
             to: 60
@@ -170,6 +205,7 @@ KCM.SimpleKCM {
             text: "Slide and fade effects when notifications arrive, are dismissed or cleared, and when Do Not Disturb changes."
         }
         QQC2.CheckBox {
+            enabled: !page.classicTheme
             text: "Floating flyout (no frame)"
             checked: page.cfg_floating
             onToggled: page.cfg_floating = checked
@@ -197,6 +233,7 @@ KCM.SimpleKCM {
                 page.cfg_flyoutSeconds = true
                 page.cfg_floating = true
                 page.cfg_notifAnimations = true
+                page.cfg_theme = "windows11"
                 page.cfg_flyoutWidth = 24
             }
         }

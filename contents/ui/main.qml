@@ -21,6 +21,10 @@ PlasmoidItem {
     readonly property bool cfgFloating: Plasmoid.configuration.floating
     readonly property int cfgFlyoutWidth: Plasmoid.configuration.flyoutWidth
     readonly property bool cfgNotifAnimations: Plasmoid.configuration.notifAnimations
+    // Theme: "windows11", "modernplasma" or "classicplasma". Anything unknown acts like windows11.
+    readonly property string cfgTheme: Plasmoid.configuration.theme || "windows11"
+    readonly property bool cfgClassic: cfgTheme === "classicplasma"
+    readonly property bool cfgPlasmaLook: cfgTheme === "modernplasma" || cfgClassic
 
     Timer {
         interval: 1000
@@ -51,7 +55,8 @@ PlasmoidItem {
     }
 
     function toggle(anchor) {
-        if (cfgFloating && floatingOk && flyoutLoader.status === Loader.Ready) {
+        // Classic Plasma is never floating: it uses Plasma's normal docked popup
+        if (cfgFloating && !cfgClassic && floatingOk && flyoutLoader.status === Loader.Ready) {
             const f = flyoutLoader.item
             // clicking the clock deactivates the dialog first; don't instantly reopen
             if (!f.open && Date.now() - f.lastClosed < 250) return
