@@ -22,6 +22,44 @@ ColumnLayout {
         groupLimit: 1
     }
 
+    // ---- layout knobs: raise these to space things out more ----
+    readonly property int textSpacing: Kirigami.Units.smallSpacing      // gap between lines of text in a card
+    readonly property int cardPadding: Kirigami.Units.smallSpacing * 2  // space between card edge and content
+
+    // Bumped whenever the model changes, so the group lookups below refresh
+    property int rev: 0
+    Connections {
+        target: notifModel
+        function onDataChanged() { pane.rev++ }
+        function onRowsInserted() { pane.rev++ }
+        function onRowsRemoved() { pane.rev++ }
+        function onLayoutChanged() { pane.rev++ }
+        function onModelReset() { pane.rev++ }
+    }
+
+    // Group header delegates listen for this and flip their own expanded state
+    signal toggleGroupRequested(int row)
+
+    function roleAt(row, role) {
+        return notifModel.data(notifModel.index(row, 0), role)
+    }
+    // Row of the group header that sits above this child row, or -1
+    function groupHeaderRow(row) {
+        for (let i = row - 1; i >= 0; i--) {
+            if (roleAt(i, NotificationManager.Notifications.IsGroupRole) === true) {
+                return i
+            }
+        }
+        return -1
+    }
+    // True if the next row is not another child of the same group
+    function isLastInGroup(row) {
+        if (row + 1 >= list.count) {
+            return true
+        }
+        return roleAt(row + 1, NotificationManager.Notifications.IsInGroupRole) !== true
+    }
+
     // Plasma's notification settings; this is where Do Not Disturb lives
     NotificationManager.Settings { id: dndSettings }
 
@@ -102,6 +140,15 @@ ColumnLayout {
                     ? groupRow.implicitHeight + Kirigami.Units.smallSpacing * 2
                     : card.height
 
+                Connections {
+                    target: pane
+                    function onToggleGroupRequested(row) {
+                        if (del.isGroup && row === index) {
+                            model.isGroupExpanded = !model.isGroupExpanded
+                        }
+                    }
+                }
+
                 // ---- group header: one per app ----
                 RowLayout {
                     id: groupRow
@@ -126,11 +173,6 @@ ColumnLayout {
                         elide: Text.ElideRight
                     }
                     PlasmaComponents.ToolButton {
-                        visible: model.groupChildrenCount > notifModel.groupLimit
-                        icon.name: model.isGroupExpanded ? "go-up-symbolic" : "go-down-symbolic"
-                        onClicked: model.isGroupExpanded = !model.isGroupExpanded
-                    }
-                    PlasmaComponents.ToolButton {
                         icon.name: "window-close-symbolic"
                         opacity: 0.7
                         onClicked: notifModel.close(notifModel.index(index, 0))
@@ -144,72 +186,98 @@ ColumnLayout {
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.leftMargin: del.inGroup ? Kirigami.Units.largeSpacing : 0
-                    height: row.implicitHeight + Kirigami.Units.smallSpacing * 2
+                    height: cardColumn.implicitHeight + pane.cardPadding * 2
                     radius: 6
                     color: Kirigami.Theme.alternateBackgroundColor
 
-                    RowLayout {
-                        id: row
+                    // Group info for the "+N notifications" button (only the
+                    // last visible card of a group shows the button)
+                    readonly property int headerRow: {
+                        pane.rev; list.count
+                        return del.inGroup ? pane.groupHeaderRow(index) : -1
+                    }
+                    readonly property bool isLastInGroup: {
+                        pane.rev; list.count
+                        return del.inGroup && pane.isLastInGroup(index)
+                    }
+                    readonly property int groupCount: {
+                        pane.rev
+                        return headerRow >= 0
+                            ? pane.roleAt(headerRow, NotificationManager.Notifications.GroupChildrenCountRole)
+                            : 0
+                    }
+                    readonly property bool groupExpanded: {
+                        pane.rev
+                        return headerRow >= 0
+                            && pane.roleAt(headerRow, NotificationManager.Notifications.IsGroupExpandedRole) === true
+                    }
+                    readonly property int hiddenCount: Math.max(0, groupCount - notifModel.groupLimit)
+                    readonly property bool showToggle: isLastInGroup && hiddenCount > 0
+
+                    ColumnLayout {
+                        id: cardColumn
                         anchors {
                             left: parent.left
                             right: parent.right
                             top: parent.top
-                            margins: Kirigami.Units.smallSpacing
+                            margins: pane.cardPadding
                         }
-                        spacing: Kirigami.Units.smallSpacing
+                        spacing: pane.textSpacing
 
-                        Kirigami.Icon {
-                            source: model.applicationIconName
-                            Layout.preferredWidth: Kirigami.Units.iconSizes.smallMedium
-                            Layout.preferredHeight: Kirigami.Units.iconSizes.smallMedium
-                            Layout.alignment: Qt.AlignTop
-                        }
-
-                        ColumnLayout {
+                        RowLayout {
+                            id: row
                             Layout.fillWidth: true
-                            spacing: 0
+                            spacing: Kirigami.Units.smallSpacing
 
-                            // Header row: app name (bold) + time
-                            RowLayout {
+                            ColumnLayout {
                                 Layout.fillWidth: true
-                                spacing: Kirigami.Units.smallSpacing
+                                spacing: pane.textSpacing
 
+                                // Header: notification title (bold), with the time right under it
+                                // (the app name already shows on the group header above)
                                 PlasmaComponents.Label {
                                     Layout.fillWidth: true
-                                    text: model.applicationName
+                                    text: model.summary
                                     font.bold: true
                                     elide: Text.ElideRight
+                                    visible: text.length > 0
                                 }
                                 PlasmaComponents.Label {
+                                    Layout.fillWidth: true
                                     text: Qt.formatTime(model.created, "h:mm AP")
                                     opacity: 0.6
                                     font.pointSize: Kirigami.Theme.smallFont.pointSize
                                 }
+                                PlasmaComponents.Label {
+                                    Layout.fillWidth: true
+                                    text: model.body
+                                    textFormat: Text.StyledText
+                                    wrapMode: Text.Wrap
+                                    maximumLineCount: 3
+                                    elide: Text.ElideRight
+                                    opacity: 0.8
+                                    visible: text.length > 0
+                                }
                             }
-                            // Notification title, now the subtext
-                            PlasmaComponents.Label {
-                                Layout.fillWidth: true
-                                text: model.summary
-                                elide: Text.ElideRight
-                                visible: text.length > 0
-                            }
-                            PlasmaComponents.Label {
-                                Layout.fillWidth: true
-                                text: model.body
-                                textFormat: Text.StyledText
-                                wrapMode: Text.Wrap
-                                maximumLineCount: 3
-                                elide: Text.ElideRight
-                                opacity: 0.8
-                                visible: text.length > 0
+
+                            PlasmaComponents.ToolButton {
+                                icon.name: "window-close-symbolic"
+                                opacity: 0.7
+                                Layout.alignment: Qt.AlignTop
+                                onClicked: notifModel.close(notifModel.index(index, 0))
                             }
                         }
 
-                        PlasmaComponents.ToolButton {
-                            icon.name: "window-close-symbolic"
-                            opacity: 0.7
-                            Layout.alignment: Qt.AlignTop
-                            onClicked: notifModel.close(notifModel.index(index, 0))
+                        // Bottom-left: "+N notifications" / "Show less"
+                        PlasmaComponents.Button {
+                            visible: card.showToggle
+                            highlighted: true   // solid accent-colored background
+                            Layout.alignment: Qt.AlignLeft
+                            font.pointSize: Kirigami.Theme.smallFont.pointSize
+                            text: card.groupExpanded
+                                ? "Show less"
+                                : "+" + card.hiddenCount + (card.hiddenCount === 1 ? " notification" : " notifications")
+                            onClicked: pane.toggleGroupRequested(card.headerRow)
                         }
                     }
                 }
