@@ -169,11 +169,29 @@ ColumnLayout {
                             Layout.fillWidth: true
                             spacing: 0
 
+                            // Header row: app name (bold) + time
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: Kirigami.Units.smallSpacing
+
+                                PlasmaComponents.Label {
+                                    Layout.fillWidth: true
+                                    text: model.applicationName
+                                    font.bold: true
+                                    elide: Text.ElideRight
+                                }
+                                PlasmaComponents.Label {
+                                    text: Qt.formatTime(model.created, "h:mm AP")
+                                    opacity: 0.6
+                                    font.pointSize: Kirigami.Theme.smallFont.pointSize
+                                }
+                            }
+                            // Notification title, now the subtext
                             PlasmaComponents.Label {
                                 Layout.fillWidth: true
                                 text: model.summary
-                                font.bold: true
                                 elide: Text.ElideRight
+                                visible: text.length > 0
                             }
                             PlasmaComponents.Label {
                                 Layout.fillWidth: true
@@ -182,13 +200,8 @@ ColumnLayout {
                                 wrapMode: Text.Wrap
                                 maximumLineCount: 3
                                 elide: Text.ElideRight
+                                opacity: 0.8
                                 visible: text.length > 0
-                            }
-                            PlasmaComponents.Label {
-                                Layout.fillWidth: true
-                                text: model.applicationName + "  ·  " + Qt.formatTime(model.created, "h:mm AP")
-                                opacity: 0.6
-                                font.pointSize: Kirigami.Theme.smallFont.pointSize
                             }
                         }
 
