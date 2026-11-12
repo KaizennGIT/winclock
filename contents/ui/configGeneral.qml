@@ -27,19 +27,30 @@ KCM.SimpleKCM {
     property int cfg_flyoutWidth
     property int cfg_flyoutWidthDefault
 
+    // Captured when the settings page opens, so the dropdown examples show
+    // today's real date and the current time.
+    readonly property date now: new Date()
+
     readonly property var timePresets: [
-        { text: "12-hour  (3:45 PM)",           fmt: "h:mm AP" },
-        { text: "12-hour with seconds  (3:45:09 PM)", fmt: "h:mm:ss AP" },
-        { text: "24-hour  (15:45)",             fmt: "HH:mm" },
-        { text: "24-hour with seconds  (15:45:09)", fmt: "HH:mm:ss" }
+        { name: "12-hour",                   fmt: "h:mm AP" },
+        { name: "12-hour with seconds",      fmt: "h:mm:ss AP" },
+        { name: "24-hour",                   fmt: "HH:mm" },
+        { name: "24-hour with seconds",      fmt: "HH:mm:ss" }
     ]
     readonly property var datePresets: [
-        { text: "11/5/2026",       fmt: "M/d/yyyy" },
-        { text: "5/11/2026",       fmt: "d/M/yyyy" },
-        { text: "2026-11-05",      fmt: "yyyy-MM-dd" },
-        { text: "Nov 5, 2026",     fmt: "MMM d, yyyy" },
-        { text: "Thu 5 Nov",       fmt: "ddd d MMM" }
+        { fmt: "M/d/yyyy" },
+        { fmt: "d/M/yyyy" },
+        { fmt: "yyyy-MM-dd" },
+        { fmt: "MMM d, yyyy" },
+        { fmt: "ddd d MMM" }
     ]
+    readonly property var timeModel: timePresets.map(p => p.name + "  (" + Qt.formatTime(now, p.fmt) + ")").concat(["Custom"])
+    readonly property var dateModel: datePresets.map(p => Qt.formatDate(now, p.fmt)).concat(["Custom"])
+
+    // True while "Custom" is picked in a dropdown (cleared when a preset is
+    // picked, the format is typed, or everything is reset)
+    property bool timeCustomMode: false
+    property bool dateCustomMode: false
 
     readonly property var themes: [
         { text: "Windows 11",     value: "windows11",
@@ -79,20 +90,34 @@ KCM.SimpleKCM {
         }
 
         QQC2.ComboBox {
+            id: timeCombo
             Kirigami.FormData.label: "Time:"
-            model: page.timePresets.map(p => p.text).concat(["Custom"])
-            currentIndex: page.presetIndex(page.timePresets, page.cfg_timeFormat)
+            model: page.timeModel
             onActivated: index => {
                 if (index < page.timePresets.length) {
+                    page.timeCustomMode = false
                     page.cfg_timeFormat = page.timePresets[index].fmt
+                } else {
+                    page.timeCustomMode = true
                 }
             }
+        }
+        // Keeps the dropdown in sync with the format, even after you have
+        // used it (a plain currentIndex binding breaks on the first click).
+        Binding {
+            target: timeCombo
+            property: "currentIndex"
+            value: page.timeCustomMode ? page.timePresets.length
+                                       : page.presetIndex(page.timePresets, page.cfg_timeFormat)
         }
         QQC2.TextField {
             Kirigami.FormData.label: "Time format:"
             Layout.minimumWidth: Kirigami.Units.gridUnit * 14
             text: page.cfg_timeFormat
-            onTextEdited: page.cfg_timeFormat = text
+            onTextEdited: {
+                page.timeCustomMode = false
+                page.cfg_timeFormat = text
+            }
         }
         QQC2.Label {
             Kirigami.FormData.label: "Preview:"
@@ -113,22 +138,34 @@ KCM.SimpleKCM {
             onToggled: page.cfg_showDate = checked
         }
         QQC2.ComboBox {
+            id: dateCombo
             enabled: page.cfg_showDate
             Kirigami.FormData.label: "Date style:"
-            model: page.datePresets.map(p => p.text).concat(["Custom"])
-            currentIndex: page.presetIndex(page.datePresets, page.cfg_dateFormat)
+            model: page.dateModel
             onActivated: index => {
                 if (index < page.datePresets.length) {
+                    page.dateCustomMode = false
                     page.cfg_dateFormat = page.datePresets[index].fmt
+                } else {
+                    page.dateCustomMode = true
                 }
             }
+        }
+        Binding {
+            target: dateCombo
+            property: "currentIndex"
+            value: page.dateCustomMode ? page.datePresets.length
+                                       : page.presetIndex(page.datePresets, page.cfg_dateFormat)
         }
         QQC2.TextField {
             enabled: page.cfg_showDate
             Kirigami.FormData.label: "Date format:"
             Layout.minimumWidth: Kirigami.Units.gridUnit * 14
             text: page.cfg_dateFormat
-            onTextEdited: page.cfg_dateFormat = text
+            onTextEdited: {
+                page.dateCustomMode = false
+                page.cfg_dateFormat = text
+            }
         }
         QQC2.Label {
             Kirigami.FormData.label: "Preview:"
@@ -225,6 +262,8 @@ KCM.SimpleKCM {
             text: "Reset all to defaults"
             icon.name: "edit-undo"
             onClicked: {
+                page.timeCustomMode = false
+                page.dateCustomMode = false
                 // keep these in sync with contents/config/main.xml
                 page.cfg_timeFormat = "h:mm AP"
                 page.cfg_dateFormat = "M/d/yyyy"
