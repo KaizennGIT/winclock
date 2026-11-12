@@ -255,6 +255,27 @@ KCM.SimpleKCM {
             text: "Turn off floating to use Plasma's normal framed popup instead."
         }
 
+        // ---------------- updates ----------------
+        Kirigami.Separator {
+            Kirigami.FormData.isSection: true
+            Kirigami.FormData.label: "Updates"
+        }
+        // Loaded separately so that if the updater ever breaks, the rest of
+        // this page still works.
+        Loader {
+            id: updateLoader
+            Layout.maximumWidth: Kirigami.Units.gridUnit * 20
+            source: "UpdateSection.qml"
+        }
+        QQC2.Label {
+            visible: updateLoader.status === Loader.Error
+            Layout.maximumWidth: Kirigami.Units.gridUnit * 20
+            wrapMode: Text.Wrap
+            opacity: 0.7
+            font: Kirigami.Theme.smallFont
+            text: "The updater could not load. You can still update by hand: git pull, then ./install.sh --restart."
+        }
+
         Kirigami.Separator {
             Kirigami.FormData.isSection: true
         }

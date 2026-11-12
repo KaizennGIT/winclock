@@ -37,8 +37,17 @@ day, M is the month, and yyyy is the year. The settings page lists the rest.
 
 ## Update
 
+Open the settings, scroll to "Updates", press "Check for updates", then
+"Install update" and "Restart panel now". It only talks to GitHub when you
+press the button. This needs `git` installed.
+
+Or by hand:
+
     git pull
     ./install.sh --restart
+
+The first time, install with `./install.sh` (this version or newer) so the
+widget knows which version it is. Until then the updater says it can't tell.
 
 ## Uninstall
 

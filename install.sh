@@ -29,6 +29,18 @@ if [ "${1:-}" = "--uninstall" ]; then
     exit 0
 fi
 
+# Record which commit is being installed, so the widget's "Check for updates"
+# button can compare it with GitHub. "+local" means uncommitted changes.
+if command -v git >/dev/null 2>&1 && git rev-parse --git-dir >/dev/null 2>&1; then
+    BUILD=$(git rev-parse HEAD)
+    if [ -n "$(git status --porcelain)" ]; then
+        BUILD="$BUILD+local"
+    fi
+    printf '%s\n' "$BUILD" > contents/BUILD
+else
+    rm -f contents/BUILD
+fi
+
 if kpackagetool6 -t Plasma/Applet -l 2>/dev/null | grep -q "$ID"; then
     kpackagetool6 -t Plasma/Applet -u "$PWD"
     echo "Upgraded $NAME."
