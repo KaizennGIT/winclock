@@ -6,6 +6,7 @@ Item {
     id: content
     property date now: new Date()
     property var prefs          // the widget root; gives access to the settings
+    property bool active: false // true while the flyout is open (set by the flyout / popup)
 
     // Extra transparent space on each side. The floating flyout uses this to
     // keep the cards off the panel. All 0 in the normal popup.
@@ -117,6 +118,12 @@ Item {
         target: cal.item
         property: "now"
         value: content.now
+        when: cal.status === Loader.Ready
+    }
+    Binding {
+        target: cal.item
+        property: "active"
+        value: content.active
         when: cal.status === Loader.Ready
     }
     Binding {

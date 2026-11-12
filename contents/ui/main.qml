@@ -38,7 +38,7 @@ PlasmoidItem {
     toolTipSubText: Qt.formatDate(now, "MMMM d, yyyy")
 
     // Fallback: Plasma's normal popup, same cards
-    fullRepresentation: Cards { now: root.now; prefs: root }
+    fullRepresentation: Cards { now: root.now; prefs: root; active: root.expanded }
 
     // Risky part lives in its own file. If it fails, only floatingOk flips.
     Loader {

@@ -25,6 +25,7 @@ Item {
         onVisibleChanged: if (!visible) wrapper.lastClosed = Date.now()
 
         mainItem: Cards {
+            active: dlg.visible
             now: wrapper.now
             prefs: wrapper.prefs
             gapBottom: wrapper.panelLocation === PlasmaCore.Types.BottomEdge ? wrapper.edgeGap : 0
